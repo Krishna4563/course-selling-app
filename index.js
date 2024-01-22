@@ -113,9 +113,14 @@ app.post("/admin/login", async (req, res) => {
 });
 
 app.post("/admin/course", authenticateJwtAdmin, async (req, res) => {
-  const course = new Course(req.body);
-  await course.save();
-  res.status(200).json({ message: "Course created successfully" });
+  const course = await Course.findOne({});
+  if (course) {
+    const newCourse = new Course(req.body);
+    await newCourse.save();
+    res.status(200).json({ message: "Course created successfully" });
+  } else {
+    res.status(403).json({ message: "Error finding course! " });
+  }
 });
 
 app.put("/admin/course/:courseId", authenticateJwtAdmin, async (req, res) => {
@@ -128,6 +133,21 @@ app.put("/admin/course/:courseId", authenticateJwtAdmin, async (req, res) => {
     res.status(403).json({ message: "Course not found" });
   }
 });
+
+app.delete(
+  "/admin/course/:courseId",
+  authenticateJwtAdmin,
+  async (req, res) => {
+    const course = await Course.findById(req.params.courseId);
+    if (course) {
+      const targetCourse = await Course.findByIdAndDelete(req.params.courseId);
+      await targetCourse.deleteOne();
+      res.status(200).json({ message: "Course Deleted Successfully" });
+    } else {
+      res.status(403).json({ message: "Course not found !" });
+    }
+  }
+);
 
 app.get("/admin/course", authenticateJwtAdmin, async (req, res) => {
   const courses = await Course.find({});
