@@ -154,36 +154,41 @@ app.get("/admin/course", authenticateJwtAdmin, async (req, res) => {
   res.json({ courses });
 });
 
-// User Routes
+//User Routes
 
-// app.post("/user/signup", (req, res) => {
-//   const user = req.body;
-//   const existingUser = USERS.find((u) => u.username === user.username);
-//   if (existingUser) {
-//     res.status(403).json({ message: "User already exists" });
-//   } else {
-//     USERS.push(user);
-//     const token = generateJwtUser(user);
-//     res.json({ message: "User created successfully", token });
-//   }
-// });
+app.post("/user/signup", async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username });
+  if (user) {
+    res.status(403).json({ message: "User already exists" });
+  } else {
+    const newUser = new User({ username, password });
+    await newUser.save();
+    const token = generateJwtUser(newUser);
+    res.status(200).json({ message: "User added successfully", token });
+  }
+});
 
-// app.post("/user/login", (req, res) => {
-//   const { username, password } = req.headers;
-//   const user = USERS.find(
-//     (u) => u.username === username && u.password === password
-//   );
-//   if (user) {
-//     const token = generateJwtUser(user);
-//     res.json({ message: "Logged in successfully", token });
-//   } else {
-//     res.status(403).json({ message: "User authentication failed" });
-//   }
-// });
+app.post("/user/login", async (req, res) => {
+  const { username, password } = req.headers;
+  const user = await User.findOne({ username, password });
+  if (user) {
+    const token = generateJwtUser(user);
+    res.status(200).json({ message: "User logged in successfully !", token });
+  } else {
+    res.status(403).json({ message: "User login failed !" });
+  }
+});
 
-// app.get("/user/course", authenticateJwtUser, (req, res) => {
-//   res.json({ courses: COURSES });
-// });
+app.get("/user/course", authenticateJwtUser, async (req, res) => {
+  const course = await Course.find({});
+  const publishedCourse = course.filter((a) => a.published === true);
+  if (publishedCourse) {
+    res.json(publishedCourse);
+  } else {
+    res.status(403).json({ message: "Error finding course!" });
+  }
+});
 
 // app.post("/user/course/:courseId", authenticateJwtUser, (req, res) => {
 //   const courseId = parseInt(req.params.courseId);
