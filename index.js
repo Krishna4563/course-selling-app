@@ -10,6 +10,8 @@ const PORT = 3000;
 const secretKeyAdmin = "s3cr3tk3yAdm1n";
 const secretKeyUser = "s3cr3tk3yUs3r";
 
+// Database Schemas
+
 const adminSchema = new mongoose.Schema({
   username: String,
   password: String,
@@ -37,6 +39,8 @@ mongoose.connect(
   "mongodb+srv://user1:user1@cluster0.jadtxey.mongodb.net/courses",
   { useNewUrlParser: true, useUnifiedTopology: true, dbName: "courses" }
 );
+
+// Admin and User authentication
 
 const generateJwtAdmin = (user) => {
   const payload = { username: user.username };
@@ -85,6 +89,8 @@ const authenticateJwtUser = (req, res, next) => {
     res.sendStatus(401);
   }
 };
+
+// ROUTES
 
 // Admin Routes
 
@@ -190,33 +196,34 @@ app.get("/user/course", authenticateJwtUser, async (req, res) => {
   }
 });
 
-// app.post("/user/course/:courseId", authenticateJwtUser, (req, res) => {
-//   const courseId = parseInt(req.params.courseId);
-//   const course = COURSES.find((c) => c.id === courseId);
-//   if (course) {
-//     const user = USERS.find((u) => u.username === req.user.username);
-//     if (user) {
-//       if (!user.purchasedCourses) {
-//         user.purchasedCourses = [];
-//       }
-//       user.purchasedCourses.push(course);
-//       res.json({ message: "Course purchased successfully" });
-//     } else {
-//       res.status(403).json({ message: "User not found" });
-//     }
-//   } else {
-//     res.status(404).json({ message: "Course not found" });
-//   }
-// });
+app.post("/user/course/:courseId", authenticateJwtUser, async (req, res) => {
+  const course = await Course.findById(req.params.courseId);
+  if (course) {
+    const user = await User.findOne({ username: req.user.username });
+    if (user) {
+      user.purchasedCourses.push(course);
+      await user.save();
+      res.json({ message: "Course purchased successfully" });
+    } else {
+      res.status(403).json({ message: "User not found !" });
+    }
+  } else {
+    res.status(403).json({ message: "Error finding course!" });
+  }
+});
 
-// app.get("/user/purchasedCourses", authenticateJwtUser, (req, res) => {
-//   const user = USERS.find((u) => u.username === req.user.username);
-//   if (user && user.purchasedCourses) {
-//     res.json({ purchasedCourses: user.purchasedCourses });
-//   } else {
-//     res.status(404).json({ message: "No courses purchased" });
-//   }
-// });
+app.get("/user/purchasedCourses", authenticateJwtUser, async (req, res) => {
+  const user = await User.findOne({ username: req.user.username }).populate(
+    "purchasedCourses"
+  );
+  if (user) {
+    res.json({ purchasedCourses: user.purchasedCourses });
+  } else {
+    res.status(403).json({ message: "User not found !" });
+  }
+});
+
+// Listen
 
 app.listen(PORT, () => {
   console.log(`App listening on port ${PORT}`);
